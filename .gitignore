@@ -1,10 +1,17 @@
-.env
-__pycache__/
-*.pyc
-.idea/
+# Ambiente Python
 .venv/
 venv/
-*.egg-info/
+__pycache__/
+*.py[cod]
 .pytest_cache/
-src/output/logs/*.txt
-.DS_Store
+
+# Segredos
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# Arquivos gerados
+evals/*.json
+docs/relatorio_evolucao.pdf
