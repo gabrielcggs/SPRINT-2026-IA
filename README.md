@@ -1,150 +1,125 @@
-# Chatbot GoodWe - Sprint 2
+# ChargeGrid Intelligence — Sprint 03
 
-Projeto da Sprint 2 do EV Challenge 2026. O objetivo foi implementar um chatbot em Python para o contexto **ChargeGrid Intelligence**, relacionado a carregadores de veiculos eletricos da GoodWe em um condominio.
-
-O chatbot usa um **system prompt** com informacoes simuladas sobre carregadores, consumo, custo, disponibilidade e risco de sobrecarga. Ele tambem guarda o historico da conversa para responder de forma mais coerente durante o dialogo.
+Projeto do EV Challenge 2026 da FIAP × GoodWe Brasil. Esta versão evolui o chatbot das Sprints 1 e 2 para uma arquitetura com **LangChain LCEL**, memória por sessão, **Pydantic v2**, context engineering e guardrails.
 
 ## Integrantes
 
 | Nome | RM |
-|------|-----|
+|---|---:|
 | Gabriel Camarosani Gouvea Goncalves da Silva | 569189 |
 | Gustavo Lima Andrade Santos | 571709 |
 | Lucas Seiji Hummel | 569673 |
 | Pedro Souza Castro | 569311 |
 | Bruno Yudi Moritaka Kanashiro | 571776 |
 
-## Dependencias
+## Estrutura
 
-- Python 3.10 ou superior
-- Bibliotecas listadas em `requirements.txt`
-- Chave de API do Gemini ou da OpenAI
+- `prompts/`: prompts versionados.
+- `src/chain/`: LCEL e memória.
+- `src/schemas/`: schema Pydantic.
+- `src/guardrails/`: segurança e escopo.
+- `evals/`: conjunto de avaliação e comparação dos modelos.
+- `docs/`: relatórios.
 
-Instalacao das dependencias:
+## Modelos locais
+
+O projeto foi configurado para comparar dois modelos locais no Ollama:
+
+- **qwen3:8b** — modelo principal para desenvolvimento e execução local.
+- **llama3.2:3b** — segundo modelo para comparação.
+
+A escolha prioriza a execução em computadores com recursos mais limitados, mantendo dois modelos de tamanhos diferentes para avaliar o trade-off entre qualidade e custo computacional.
+
+## Requisitos
+
+- Python 3.10+
+- Ollama instalado e em execução.
+- `qwen3:8b`
+- `llama3.2:3b`
+
+Instale as dependências:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Variaveis de ambiente
+Baixe os modelos no Ollama:
 
-As chaves de API nao devem ser colocadas diretamente no codigo.
-
-Crie um arquivo `.env` na raiz do projeto, usando o arquivo `.env.example` como modelo:
-
-```env
-LLM_PROVIDER=gemini
-GOOGLE_API_KEY=sua_chave_gemini_aqui
-OPENAI_API_KEY=sua_chave_openai_aqui
-GEMINI_MODEL=gemini-2.5-flash-lite
-OPENAI_MODEL=gpt-4o-mini
+```bash
+ollama pull qwen3:8b
+ollama pull llama3.2:3b
 ```
 
-Para usar Gemini, mantenha:
+## Configuração
 
-```env
-LLM_PROVIDER=gemini
-GOOGLE_API_KEY=sua_chave_gemini_aqui
+Copie `.env.example` para `.env` e ajuste os parâmetros se necessário. Nunca publique o `.env`.
+
+Configuração padrão:
+
+```text
+OLLAMA_MODEL=qwen3:8b
+OLLAMA_MODEL_2=llama3.2:3b
+OLLAMA_BASE_URL=http://localhost:11434
+TEMPERATURE=0.1
+TOP_P=0.9
+MAX_TOKENS=512
+MAX_HISTORY_TOKENS=2000
 ```
 
-Para usar OpenAI, altere para:
+## Execução
 
-```env
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sua_chave_openai_aqui
-```
-
-## Como executar
-
-Na raiz do projeto, execute:
+Na raiz:
 
 ```bash
 python src/main.py
 ```
 
-Depois disso, digite as perguntas no terminal.
-
-Comandos disponiveis:
-
-- `sair`: encerra o chatbot
-- `limpar`: apaga o historico da conversa atual
-
-Tambem existe uma versao para Google Colab em:
+Para testar o segundo modelo, altere temporariamente `OLLAMA_MODEL` no `.env` para:
 
 ```text
-notebooks/chatbot_colab.ipynb
-```
-## Persona
-
-- Operadores de eletropostos
-- Síndicos
-- Motoristas de veículos elétricos
-
-## Exemplos de uso
-
-Exemplo 1:
-
-```text
-Usuario: Quanto gastei este mes em recarga?
-Chatbot: O consumo total em junho/2026 foi de 847 kWh, com custo estimado de R$ 753,83.
-```
-
-Exemplo 2:
-
-```text
-Usuario: Qual carregador esta disponivel agora?
-Chatbot: Os carregadores CG-01 e CG-04 estao disponiveis. O CG-02 esta em uso e o CG-03 esta em manutencao.
-```
-
-Exemplo 3:
-
-```text
-Usuario: Existe sobrecarga agora no condominio?
-Chatbot: Nao existe sobrecarga no momento. A demanda atual e de 38 kW para um limite contratado de 50 kW.
+OLLAMA_MODEL=llama3.2:3b
 ```
 
 ## Testes
 
-Os 5 casos de teste da Sprint 2 estao em:
-
-```text
-docs/testes/modelo_testes.md
+```bash
+pytest -q
 ```
 
-Para executar os testes:
+## Avaliação
 
 ```bash
-python src/run_tests.py
+python evals/run_evals.py
 ```
 
-O resultado e salvo em:
+O arquivo `evals/sprint3_results.json` será gerado com resposta, latência, tokens e validade do structured output. A revisão qualitativa deve ser feita pelo grupo antes do relatório final.
 
-```text
-docs/testes/resultados_testes_sprint02.md
+Para comparar os dois modelos com o mesmo conjunto de avaliação:
+
+```bash
+python evals/compare_models.py
 ```
 
-O relatorio registra:
+O script executa o eval set separadamente para `qwen3:8b` e `llama3.2:3b` e salva os resultados em `evals/model_comparison.json`.
 
-- pergunta enviada
-- resposta obtida
-- avaliacao qualitativa: adequada, parcialmente adequada ou inadequada
+## Requisitos atendidos
 
-## Estrutura do projeto
+- Chain LCEL `prompt | llm | parser`.
+- `RunnableWithMessageHistory`.
+- Memória com limite de tokens e uso de `ConversationTokenBufferMemory` quando disponível.
+- Pydantic v2 + `field_validator`.
+- Prompt XML versionado.
+- Medição de tokens com `tiktoken`.
+- Guardrails para escopo, jailbreak, prompt injection e segurança.
+- Eval set com happy path, edge cases, jailbreak e out-of-scope.
+- Comparação de `qwen3:8b` e `llama3.2:3b`.
+- Parâmetros documentados: `temperature`, `top_p` e `max_tokens`.
 
-```text
-SPRIN01-IA/
-|-- src/
-|   |-- main.py
-|   |-- chatbot.py
-|   |-- run_tests.py
-|-- notebooks/
-|   |-- chatbot_colab.ipynb
-|-- docs/
-|   |-- testes/
-|       |-- modelo_testes.md
-|       |-- resultados_testes_sprint02.md
-|-- requirements.txt
-|-- .env.example
-|-- README.md
-```
+## Relatórios
+
+- `docs/relatorio_modelos.md`
+- `docs/relatorio_evolucao.md`
+- `docs/relatorio_evolucao.pdf`
+
+Os números de qualidade, latência e structured output devem ser preenchidos somente após a execução dos testes.
 
