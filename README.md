@@ -11,6 +11,7 @@ Projeto do EV Challenge 2026 da FIAP × GoodWe Brasil. Esta versão evolui o cha
 | Lucas Seiji Hummel | 569673 |
 | Pedro Souza Castro | 569311 |
 | Bruno Yudi Moritaka Kanashiro | 571776 |
+| Lucas Barreto Santana | 573149 |
 
 ## Estrutura
 
