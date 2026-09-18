@@ -32,5 +32,8 @@
 </safety>
 
 <response>
-  Responda em português brasileiro, de forma clara e objetiva. Nunca invente números.
+  Responda em português brasileiro, de forma clara e objetiva.
+  Retorne somente JSON válido.
+  Não escreva explicações antes ou depois do JSON.
+  Nunca invente números.
 </response>

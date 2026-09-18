@@ -15,8 +15,11 @@ load_dotenv(override=True)
 
 ROOT = Path(__file__).resolve().parents[2]
 PROMPT_PATH = ROOT / "prompts" / "system_prompt_v3.md"
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gpt-oss:20b-cloud")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "https://ollama.com")
+OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "")
+
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.1"))
 TOP_P = float(os.getenv("TOP_P", "0.9"))
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "512"))
@@ -42,30 +45,68 @@ def build_llm(model: str | None = None):
         temperature=TEMPERATURE,
         top_p=TOP_P,
         num_predict=MAX_TOKENS,
+        reasoning=False,
+        client_kwargs={
+            "headers": {
+                "Authorization": f"Bearer {OLLAMA_API_KEY}"
+            }
+        },
     )
 
 
 def build_chain(model: str | None = None):
     llm = build_llm(model)
-    parser = PydanticOutputParser(pydantic_object=ConsultaRecarga)
+
+    parser = PydanticOutputParser(
+        pydantic_object=ConsultaRecarga
+    )
+
     prompt = ChatPromptTemplate.from_messages([
-        ("system", load_system_prompt() + "\n\nRetorne obrigatoriamente um JSON válido conforme estas instruções:\n{format_instructions}"),
+        (
+            "system",
+            load_system_prompt()
+            + "\n\nRetorne obrigatoriamente um JSON válido conforme estas instruções:\n"
+            + "{format_instructions}"
+        ),
         MessagesPlaceholder(variable_name="history"),
         ("human", "{input}"),
-    ]).partial(format_instructions=parser.get_format_instructions())
+    ]).partial(
+        format_instructions=parser.get_format_instructions()
+    )
+
     return prompt | llm | parser, llm
 
 
 def build_conversational_chain(model: str | None = None):
-    chain, llm = build_chain(model)
+    llm = build_llm(model)
+    parser = PydanticOutputParser(pydantic_object=ConsultaRecarga)
+
+    prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            load_system_prompt()
+            + "\n\nRetorne obrigatoriamente um JSON válido conforme estas instruções:\n{format_instructions}"
+        ),
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{input}"),
+    ]).partial(
+        format_instructions=parser.get_format_instructions()
+    )
+
+    chat_chain = prompt | llm
 
     def get_history(session_id: str):
-        return get_session_memory(session_id, max_tokens=MAX_HISTORY_TOKENS, llm=llm).get_history()
+        return get_session_memory(
+            session_id,
+            max_tokens=MAX_HISTORY_TOKENS,
+            llm=llm
+        ).get_history()
 
     wrapped = RunnableWithMessageHistory(
-        chain,
+        chat_chain,
         get_history,
         input_messages_key="input",
         history_messages_key="history",
     )
-    return wrapped, llm
+
+    return wrapped | parser, llm
