@@ -26,8 +26,8 @@ def main():
             print("\n[Histórico limpo — nova conversa iniciada]\n")
             continue
         
-        resposta = chatbot.chat(pergunta)
-        print(f"\nChargeGrid: {resposta}\n")
+        resultado = chatbot.chat(pergunta)
+        print(f"\nChargeGrid: {resultado['resposta']}\n")
 
 
 if __name__ == "__main__":

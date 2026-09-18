@@ -1,9 +1,9 @@
-# Histórico de versões do prompt
+# Historico de versoes do prompt
 
-| Versão | Mudança | Motivo | Ganho medido |
+| Versao | Mudanca | Motivo | Ganho medido |
 |---|---|---|---|
-| v1 | Prompt da base da Sprint 2 reorganizado | Preservar o comportamento anterior | Será medido no eval |
-| v2 | XML tagging e separação de contexto, dados, regras e segurança | Melhorar organização do contexto | Será medido no eval |
-| v3 | Guardrails explícitos e fonte de verdade | Reduzir alucinação e ataques de prompt | Será medido no eval |
+| v1 | Prompt simples com dados simulados | Base da Sprint 1/2 | A preencher |
+| v2 | Separacao em tags XML | Melhorar organizacao do contexto | A preencher |
+| v3 | Regras de seguranca e formato JSON | Reduzir alucinacao e prompt injection | A preencher |
 
-> Os valores de ganho devem ser preenchidos depois da execução dos evals. Não invente métricas.
+Os ganhos devem ser preenchidos depois da execucao dos evals. Nao inventar metricas.

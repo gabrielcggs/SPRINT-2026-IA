@@ -16,8 +16,8 @@ from chain.builder import token_counter
 
 
 MODELS = [
-    os.getenv("OLLAMA_MODEL", "gpt-oss:20b-cloud"),
-    os.getenv("OLLAMA_MODEL_2", "gpt-oss:120b-cloud"),
+    os.getenv("OLLAMA_MODEL", "gpt-oss:120b-cloud"),
+    os.getenv("OLLAMA_MODEL_2", "gpt-oss:20b-cloud"),
 ]
 
 

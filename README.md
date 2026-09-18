@@ -1,6 +1,8 @@
-# ChargeGrid Intelligence — Sprint 03
+# ChargeGrid Intelligence - Sprint 03
 
-Projeto do EV Challenge 2026 da FIAP × GoodWe Brasil. Esta versão evolui o chatbot das Sprints 1 e 2 para uma arquitetura com **LangChain LCEL**, memória por sessão, **Pydantic v2**, context engineering e guardrails.
+Projeto FIAP x GoodWe Brasil para um chatbot de recarga de veiculos eletricos.
+
+Esta versao usa LangChain LCEL, memoria por sessao, Pydantic v2, prompt com XML tagging, guardrails e evals.
 
 ## Integrantes
 
@@ -13,72 +15,34 @@ Projeto do EV Challenge 2026 da FIAP × GoodWe Brasil. Esta versão evolui o cha
 | Bruno Yudi Moritaka Kanashiro | 571776 |
 | Lucas Barreto Santana | 573149 |
 
-## Estrutura
+## Como o modelo funciona
 
-- `prompts/`: prompts versionados.
-- `src/chain/`: LCEL e memória.
-- `src/schemas/`: schema Pydantic.
-- `src/guardrails/`: segurança e escopo.
-- `evals/`: conjunto de avaliação e comparação dos modelos.
-- `docs/`: relatórios.
+O projeto nao usa modelo local e nao precisa baixar nada pelo Ollama.
 
-## Modelos locais
+Foi mantido `ChatOllama` porque ele aparece na rubrica da Sprint 03, mas apontando para a Ollama Cloud:
 
-O projeto foi configurado para comparar dois modelos locais no Ollama:
+- modelo principal: `gpt-oss:120b-cloud`
+- modelo de comparacao: `gpt-oss:20b-cloud`
+- chave em variavel de ambiente: `OLLAMA_API_KEY`
 
-- **qwen3:8b** — modelo principal para desenvolvimento e execução local.
-- **llama3.2:3b** — segundo modelo para comparação.
-
-A escolha prioriza a execução em computadores com recursos mais limitados, mantendo dois modelos de tamanhos diferentes para avaliar o trade-off entre qualidade e custo computacional.
-
-## Requisitos
-
-- Python 3.10+
-- Ollama instalado e em execução.
-- `qwen3:8b`
-- `llama3.2:3b`
-
-Instale as dependências:
+## Instalar
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Baixe os modelos no Ollama:
-
-```bash
-ollama pull qwen3:8b
-ollama pull llama3.2:3b
-```
-
-## Configuração
-
-Copie `.env.example` para `.env` e ajuste os parâmetros se necessário. Nunca publique o `.env`.
-
-Configuração padrão:
+Copie `.env.example` para `.env` e preencha a chave:
 
 ```text
-OLLAMA_MODEL=qwen3:8b
-OLLAMA_MODEL_2=llama3.2:3b
-OLLAMA_BASE_URL=http://localhost:11434
-TEMPERATURE=0.1
-TOP_P=0.9
-MAX_TOKENS=512
-MAX_HISTORY_TOKENS=2000
+OLLAMA_API_KEY=SUA_CHAVE_AQUI
 ```
 
-## Execução
+O arquivo `.env` esta no `.gitignore`.
 
-Na raiz:
+## Rodar
 
 ```bash
 python src/main.py
-```
-
-Para testar o segundo modelo, altere temporariamente `OLLAMA_MODEL` no `.env` para:
-
-```text
-OLLAMA_MODEL=llama3.2:3b
 ```
 
 ## Testes
@@ -87,40 +51,32 @@ OLLAMA_MODEL=llama3.2:3b
 pytest -q
 ```
 
-## Avaliação
+## Evals
 
 ```bash
 python evals/run_evals.py
-```
-
-O arquivo `evals/sprint3_results.json` será gerado com resposta, latência, tokens e validade do structured output. A revisão qualitativa deve ser feita pelo grupo antes do relatório final.
-
-Para comparar os dois modelos com o mesmo conjunto de avaliação:
-
-```bash
 python evals/compare_models.py
 ```
 
-O script executa o eval set separadamente para `qwen3:8b` e `llama3.2:3b` e salva os resultados em `evals/model_comparison.json`.
+Os resultados gerados ficam em:
 
-## Requisitos atendidos
+- `evals/sprint3_results.json`
+- `evals/model_comparison.json`
 
-- Chain LCEL `prompt | llm | parser`.
-- `RunnableWithMessageHistory`.
-- Memória com limite de tokens e uso de `ConversationTokenBufferMemory` quando disponível.
-- Pydantic v2 + `field_validator`.
-- Prompt XML versionado.
-- Medição de tokens com `tiktoken`.
-- Guardrails para escopo, jailbreak, prompt injection e segurança.
-- Eval set com happy path, edge cases, jailbreak e out-of-scope.
-- Comparação de `qwen3:8b` e `llama3.2:3b`.
-- Parâmetros documentados: `temperature`, `top_p` e `max_tokens`.
+## Estrutura
 
-## Relatórios
+- `prompts/`: prompts versionados e historico.
+- `src/chain/`: builder LCEL e memoria.
+- `src/schemas/`: schema Pydantic v2.
+- `src/guardrails/`: validacao de seguranca e escopo.
+- `evals/`: testes de avaliacao.
+- `docs/`: relatorios da entrega.
 
-- `docs/relatorio_modelos.md`
-- `docs/relatorio_evolucao.md`
-- `docs/relatorio_evolucao.pdf`
+## Itens da Sprint 03
 
-Os números de qualidade, latência e structured output devem ser preenchidos somente após a execução dos testes.
-
+- LCEL: `ChatPromptTemplate | ChatOllama | PydanticOutputParser`.
+- Memoria: `RunnableWithMessageHistory` por `session_id`.
+- Structured output: schema `ConsultaRecarga` com `field_validator`.
+- Context engineering: prompt XML versionado e contagem com `tiktoken`.
+- Guardrails: jailbreak, prompt injection, escopo GoodWe e riscos eletricos/juridicos/financeiros.
+- Relatorios: `docs/relatorio_modelos.md` e `docs/relatorio_evolucao.md`.

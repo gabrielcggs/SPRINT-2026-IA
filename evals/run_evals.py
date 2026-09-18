@@ -13,7 +13,7 @@ from chain.builder import token_counter
 
 def main():
     cases = json.loads((ROOT / "evals" / "eval_set.json").read_text(encoding="utf-8"))
-    chatbot = create_chatbot(model=os.getenv("OLLAMA_MODEL", "qwen3:8b"))
+    chatbot = create_chatbot(model=os.getenv("OLLAMA_MODEL", "gpt-oss:120b-cloud"))
     results = []
     for case in cases:
         session_id = f"eval-{case['id']}"

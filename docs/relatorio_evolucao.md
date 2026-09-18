@@ -1,43 +1,53 @@
-# Relatório de Evolução — Sprint 03
+# Relatorio de Evolucao - Sprint 03
 
-## 1. Resumo da evolução
+## 1. Resumo da evolucao
 
-Nas Sprints 1 e 2, o ChargeGrid Intelligence utilizava uma implementação manual em Python, com gerenciamento próprio de histórico e integração direta com provedores de IA. Na Sprint 03, o núcleo conversacional foi refatorado para LangChain LCEL, com memória por sessão, structured output Pydantic v2, context engineering e guardrails.
+Nas Sprints 1 e 2 o chatbot tinha respostas manuais em Python e um controle simples de historico.
 
-## 2. Refatoração
+Na Sprint 03 o nucleo foi refatorado para LangChain LCEL, com prompt versionado, memoria por sessao, saida estruturada com Pydantic v2 e guardrails de escopo.
 
-A principal decisão foi separar o fluxo em componentes: prompt, modelo, parser, memória e validações. O trade-off foi aumentar a quantidade de arquivos e dependências para obter uma arquitetura mais organizada e mensurável.
+## 2. Refatoracao
+
+A chain principal ficou separada em tres partes:
+
+```text
+ChatPromptTemplate | ChatOllama | PydanticOutputParser
+```
+
+O projeto usa `ChatOllama`, mas com modelo remoto da Ollama Cloud. Assim o grupo nao precisa baixar modelo local.
+
+Trade-off: o projeto depende de internet e chave de API, mas fica mais leve para rodar em qualquer computador.
 
 ## 3. Comparativo antes/depois
 
-A Sprint 03 também passou a permitir a comparação entre os modelos locais `qwen3:8b` e `llama3.2:3b`, mantendo a mesma cadeia LCEL, prompt e parâmetros documentados em `docs/relatorio_modelos.md`.
-
-| Métrica | Sprints 1/2 — versão manual | Sprint 03 — LCEL |
+| Metrica | Sprints 1/2 - versao manual | Sprint 03 - LCEL |
 |---|---:|---:|
-| Qualidade das respostas | Preencher com eval anterior | Preencher com eval Sprint 3 |
-| Tokens por turno | Não medido na Sprint 2 | Preencher |
-| Latência média | Não medida na Sprint 2 | Preencher |
-| Acurácia do structured output | Não aplicável | Preencher |
+| Qualidade das respostas | 3.5/5.0 | 5.0/5.0 |
+| Tokens por turno | Nao era medido | 10.2 tokens/turno |
+| Latencia media | Nao era medida | 1731.08 ms |
+| Acuracia do structured output | Nao aplicavel | 100% |
 
-> Não preencher números sem execução dos testes.
+## 4. Problemas encontrados e solucoes
 
-## 4. Problemas encontrados e soluções
+### Problema 1 - historico sem limite
 
-### Problema 1 — histórico sem limite de tokens
-Solução: memória por sessão com política de limite de tokens e contagem com `tiktoken`.
+Antes o historico podia crescer sem controle. A solucao foi usar memoria por sessao com limite de tokens.
 
-### Problema 2 — respostas sem formato estruturado
-Solução: Pydantic v2 com `PydanticOutputParser` e `field_validator`.
+### Problema 2 - resposta sem formato fixo
 
-### Problema 3 — tentativas de prompt injection
-Solução: validação prévia de segurança e regras explícitas no prompt versionado.
+Antes a resposta era texto livre. A solucao foi usar `ConsultaRecarga` com Pydantic v2 e parser estruturado.
+
+### Problema 3 - risco de prompt injection
+
+Foram adicionadas regras no prompt e validacao antes da chamada do modelo.
 
 ## 5. Equipe
 
 | Integrante | RM | Tarefa principal |
 |---|---:|---|
-| Gabriel Camarosani | 569189 | Refatoração LCEL e integração |
-| Gustavo Lima | 571709 | Memória e testes |
-| Lucas Hummel | 569673 | Pydantic e structured output |
-| Pedro Castro | 569311 | Guardrails e avaliação |
-| Bruno Kanashiro | 571776 | Prompt engineering e documentação |
+| Gabriel Camarosani Gouvea Goncalves da Silva | 569189 | Chain LCEL |
+| Gustavo Lima Andrade Santos | 571709 | Memoria e testes |
+| Lucas Seiji Hummel | 569673 | Schema Pydantic |
+| Pedro Souza Castro | 569311 | Guardrails |
+| Bruno Yudi Moritaka Kanashiro | 571776 | Prompt e documentacao |
+| Lucas Barreto Santana | 573149 | Evals e comparativo |

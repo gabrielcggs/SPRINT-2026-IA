@@ -86,7 +86,8 @@ def main():
 
     for index, caso in enumerate(TEST_CASES):
         chatbot.reset()
-        resposta = chatbot.chat(caso["pergunta"]).replace("\n", " ").replace("|", "/")
+        resultado = chatbot.chat(caso["pergunta"])
+        resposta = resultado["resposta"].replace("\n", " ").replace("|", "/")
         if resposta.startswith("Erro da API"):
             encontrou_erro_api = True
         avaliacao = avaliar_qualitativa(resposta, caso["id"])

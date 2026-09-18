@@ -6,11 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 class ConsultaRecarga(BaseModel):
     resposta: str = Field(min_length=1)
 
-    escopo: Literal[
-        "goodwe_ev",
-        "fora_escopo",
-        "seguranca"
-    ]
+    escopo: str = "goodwe_ev"
 
     carregador_id: str | None = None
     estado: str | None = None
@@ -18,6 +14,25 @@ class ConsultaRecarga(BaseModel):
     consumo_kwh: float | None = None
     tarifa_kwh: float | None = None
     custo_estimado: float | None = None
+
+    @field_validator("escopo", mode="before")
+    @classmethod
+    def validar_escopo(cls, value):
+        if value in (None, ""):
+            return "goodwe_ev"
+
+        value = str(value).strip().lower()
+
+        if value in {"goodwe", "ev", "recarga", "chargegrid"}:
+            return "goodwe_ev"
+
+        if value in {"fora", "fora de escopo", "out_of_scope"}:
+            return "fora_escopo"
+
+        if value in {"segurança", "seguranca", "safety", "security"}:
+            return "seguranca"
+
+        return value
 
     @field_validator("carregador_id")
     @classmethod

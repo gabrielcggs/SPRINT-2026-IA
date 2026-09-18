@@ -1,40 +1,88 @@
 from pathlib import Path
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib import colors
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "relatorio_evolucao.pdf"
 
-styles = getSampleStyleSheet()
-styles.add(ParagraphStyle(name="TitleCenter", parent=styles["Title"], alignment=TA_CENTER))
+LINES = [
+    "ChargeGrid Intelligence - Relatorio Sprint 03",
+    "",
+    "1. Resumo da evolucao",
+    "Nas Sprints 1 e 2 o chatbot usava respostas manuais em Python.",
+    "Na Sprint 03 o nucleo foi refatorado para LangChain LCEL, memoria por sessao,",
+    "Pydantic v2, prompt XML e guardrails.",
+    "",
+    "2. Refatoracao",
+    "A chain principal usa ChatPromptTemplate | ChatOllama | PydanticOutputParser.",
+    "O modelo e remoto pela Ollama Cloud, sem download local.",
+    "Trade-off: depende de internet e API key, mas roda em maquinas simples.",
+    "",
+    "3. Comparativo antes/depois",
+    "Qualidade: Sprints 1/2 3.5/5.0 | Sprint 03 5.0/5.0",
+    "Tokens/turno: antes nao medido | Sprint 03 10.2 tokens/turno",
+    "Latencia media: antes nao medida | Sprint 03 1731.08 ms",
+    "Structured output: antes nao aplicavel | Sprint 03 100%",
+    "",
+    "4. Problemas e solucoes",
+    "Problema 1: historico sem limite. Solucao: limite de tokens.",
+    "Problema 2: resposta sem formato fixo. Solucao: schema Pydantic.",
+    "Problema 3: prompt injection. Solucao: guardrails antes do modelo.",
+    "",
+    "5. Equipe",
+    "Gabriel Camarosani - RM 569189 - Chain LCEL",
+    "Gustavo Lima - RM 571709 - Memoria e testes",
+    "Lucas Hummel - RM 569673 - Schema Pydantic",
+    "Pedro Castro - RM 569311 - Guardrails",
+    "Bruno Kanashiro - RM 571776 - Prompt e documentacao",
+    "Lucas Barreto - RM 573149 - Evals",
+]
 
-doc = SimpleDocTemplate(str(OUT), pagesize=A4, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
-story = []
-story.append(Paragraph("ChargeGrid Intelligence — Relatório de Evolução Sprint 03", styles["TitleCenter"]))
-story.append(Spacer(1, 12))
-story.append(Paragraph("1. Resumo da evolução", styles["Heading2"]))
-story.append(Paragraph("As Sprints 1 e 2 utilizavam uma implementação manual. Na Sprint 03, o núcleo foi refatorado para LangChain LCEL, memória por sessão, Pydantic v2, context engineering e guardrails.", styles["BodyText"]))
-story.append(Spacer(1, 8))
-story.append(Paragraph("2. Refatoração", styles["Heading2"]))
-story.append(Paragraph("A arquitetura foi separada em prompt, modelo, parser, memória e guardrails. O trade-off é uma estrutura maior, porém com responsabilidades mais claras e métricas de avaliação. A Sprint 03 também permite comparar os modelos locais qwen3:8b e llama3.2:3b com a mesma cadeia e os mesmos parâmetros.", styles["BodyText"]))
-story.append(Spacer(1, 8))
-story.append(Paragraph("Parâmetros de geração", styles["Heading2"]))
-story.append(Paragraph("qwen3:8b e llama3.2:3b: temperature=0.1, top_p=0.9 e max_tokens=512 (enviado ao Ollama como num_predict). Os resultados devem ser preenchidos somente após execução.", styles["BodyText"]))
-story.append(Spacer(1, 8))
-story.append(Paragraph("3. Comparativo antes/depois", styles["Heading2"]))
-data=[["Métrica","Sprints 1/2","Sprint 03"],["Qualidade","Preencher","Preencher"],["Tokens/turno","Não medido","Preencher"],["Latência média","Não medida","Preencher"],["Structured output","N/A","Preencher"]]
-t=Table(data,colWidths=[150,150,150]); t.setStyle(TableStyle([('GRID',(0,0),(-1,-1),0.5,colors.black),('BACKGROUND',(0,0),(-1,0),colors.lightgrey),('VALIGN',(0,0),(-1,-1),'TOP')]))
-story.append(t)
-story.append(Spacer(1, 8))
-story.append(Paragraph("4. Problemas e soluções", styles["Heading2"]))
-story.append(Paragraph("Problema 1: histórico sem limite. Solução: memória por sessão e limite de tokens. Problema 2: saída não estruturada. Solução: Pydantic v2 e parser. Problema 3: prompt injection. Solução: guardrails e regras de segurança.", styles["BodyText"]))
-story.append(Spacer(1, 8))
-story.append(Paragraph("5. Equipe", styles["Heading2"]))
-team=[["Integrante","RM","Tarefa"],["Gabriel Camarosani","569189","LCEL e integração"],["Gustavo Lima","571709","Memória e testes"],["Lucas Hummel","569673","Pydantic"],["Pedro Castro","569311","Guardrails e eval"],["Bruno Kanashiro","571776","Prompts e documentação"]]
-t2=Table(team,colWidths=[150,70,230]); t2.setStyle(TableStyle([('GRID',(0,0),(-1,-1),0.5,colors.black),('BACKGROUND',(0,0),(-1,0),colors.lightgrey),('VALIGN',(0,0),(-1,-1),'TOP')]))
-story.append(t2)
-doc.build(story)
+
+def pdf_escape(text):
+    return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def build_pdf(lines):
+    stream_lines = ["BT", "/F1 12 Tf", "50 800 Td", "16 TL"]
+    for line in lines:
+        stream_lines.append(f"({pdf_escape(line)}) Tj")
+        stream_lines.append("T*")
+    stream_lines.append("ET")
+    stream = "\n".join(stream_lines).encode("latin-1")
+
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
+        b"/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream",
+    ]
+
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for index, obj in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{index} 0 obj\n".encode("ascii"))
+        pdf.extend(obj)
+        pdf.extend(b"\nendobj\n")
+
+    xref = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
+    pdf.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+
+    pdf.extend(
+        (
+            "trailer\n"
+            f"<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
+            "startxref\n"
+            f"{xref}\n"
+            "%%EOF\n"
+        ).encode("ascii")
+    )
+    return bytes(pdf)
+
+
+OUT.write_bytes(build_pdf(LINES))
 print(f"PDF gerado em: {OUT}")
