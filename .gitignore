@@ -13,5 +13,6 @@ __pycache__/
 .vscode/
 
 # Arquivos gerados
-evals/*.json
+evals/model_comparison.json
+evals/sprint3_results.json
 docs/relatorio_evolucao.pdf

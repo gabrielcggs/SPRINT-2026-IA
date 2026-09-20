@@ -41,6 +41,3 @@ O resultado fica em `evals/model_comparison.json`.
 | Structured output valido (%) | 100.0 | 100.0 |
 | Casos adequados | 10/10 | 10/10 |
 
-## Observacao
-
-Os numeros nao devem ser inventados. A equipe deve executar o eval e preencher a tabela final com os resultados reais.

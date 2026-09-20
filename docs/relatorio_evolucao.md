@@ -41,13 +41,3 @@ Antes a resposta era texto livre. A solucao foi usar `ConsultaRecarga` com Pydan
 
 Foram adicionadas regras no prompt e validacao antes da chamada do modelo.
 
-## 5. Equipe
-
-| Integrante | RM | Tarefa principal |
-|---|---:|---|
-| Gabriel Camarosani Gouvea Goncalves da Silva | 569189 | Chain LCEL |
-| Gustavo Lima Andrade Santos | 571709 | Memoria e testes |
-| Lucas Seiji Hummel | 569673 | Schema Pydantic |
-| Pedro Souza Castro | 569311 | Guardrails |
-| Bruno Yudi Moritaka Kanashiro | 571776 | Prompt e documentacao |
-| Lucas Barreto Santana | 573149 | Evals e comparativo |
