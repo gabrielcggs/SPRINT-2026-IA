@@ -1,6 +1,12 @@
+import re
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
+
+# Sprint 04: o validador deixou de aceitar so CG-01..CG-04 (base simulada da Sprint 03).
+# Agora aceita qualquer id no formato CG-NN; quem decide se o carregador existe e a
+# base de conhecimento recuperada pelo RAG, nao o schema.
+PADRAO_CARREGADOR = re.compile(r"^CG-\d{2}$")
 
 
 class ConsultaRecarga(BaseModel):
@@ -14,6 +20,9 @@ class ConsultaRecarga(BaseModel):
     consumo_kwh: float | None = None
     tarifa_kwh: float | None = None
     custo_estimado: float | None = None
+
+    # Sprint 04: citacao de fonte (ex.: "tabela_tarifaria.pdf, p. 1, seção 1 Tarifa padrao")
+    fontes: list[str] = Field(default_factory=list)
 
     @field_validator("escopo", mode="before")
     @classmethod
@@ -40,14 +49,12 @@ class ConsultaRecarga(BaseModel):
         if value is None:
             return value
 
-        permitido = {"CG-01", "CG-02", "CG-03", "CG-04"}
-
         value = value.upper().replace(" E ", ",")
 
         ids = [item.strip() for item in value.split(",")]
 
-        if any(item not in permitido for item in ids):
-            raise ValueError("carregador fora da base simulada")
+        if any(not PADRAO_CARREGADOR.match(item) for item in ids):
+            raise ValueError("carregador_id deve seguir o formato CG-NN")
 
         return ", ".join(ids)
 

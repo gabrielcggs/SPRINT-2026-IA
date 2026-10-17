@@ -6,3 +6,20 @@ langchain-classic>=1.0.0
 pydantic>=2.7.0
 tiktoken>=0.8.0
 pytest>=8.0.0
+
+# --- Sprint 04: RAG ---
+langchain-community>=0.3.0
+langchain-text-splitters>=0.3.0
+langchain-chroma>=0.2.0
+chromadb>=0.5.0
+pymupdf>=1.24.0
+reportlab>=4.0.0
+streamlit>=1.38.0
+
+# Avaliacao RAGAS (opcional; sem ele o run_rag_eval.py usa a rubrica manual)
+ragas>=0.2.0
+
+# Bonus multi-provider (instale so o que for usar)
+# langchain-openai
+# langchain-google-genai
+# langchain-anthropic

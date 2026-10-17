@@ -1,43 +1,41 @@
-# Relatorio de modelos - Sprint 03
+# Relatório de modelos e parâmetros — Sprint 04
 
-## Objetivo
+> Substitui o relatório da Sprint 03 (o comparativo antigo continua no histórico do Git).
+> Todos os números vêm de `evals/results/*.json`; gere a tabela com `python evals/gerar_tabelas.py`.
 
-Comparar dois modelos remotos usando a mesma chain LCEL, o mesmo prompt e o mesmo eval set.
+## 1. Modelos comparados
 
-O projeto nao usa modelo local. A chamada e feita com `ChatOllama` para a Ollama Cloud, por isso nao existe `ollama pull`.
+| Papel | Provedor : modelo | Observação |
+|---|---|---|
+| Principal | `ollama:gpt-oss:120b-cloud` | modelo da Sprint 03, via Ollama Cloud |
+| Comparação | `ollama:gpt-oss:20b-cloud` | mesmo provedor, modelo menor |
+| Multi-provider (bônus) | <!-- ex.: gemini:<modelo> ou openai:<modelo> ou anthropic:<modelo> --> | outro provedor, mesmo prompt e mesmo eval set |
+| Embeddings | `nomic-embed-text` (Ollama Cloud) | com prefixos `search_query:` / `search_document:` |
 
-## Modelos
-
-| Modelo | Uso |
-|---|---|
-| `gpt-oss:120b-cloud` | Modelo principal |
-| `gpt-oss:20b-cloud` | Modelo de comparacao |
-
-## Parametros
-
-| Parametro | Valor |
-|---|---:|
-| `temperature` | `0.1` |
-| `top_p` | `0.9` |
-| `max_tokens` | `512` |
-
-Usamos temperatura baixa porque o chatbot responde com dados simulados de carregadores, custo e consumo. Respostas muito criativas atrapalhariam a avaliacao.
-
-## Como executar
+Como rodar cada execução (mesmo eval set, mesmo índice):
 
 ```bash
-python evals/compare_models.py
+python evals/run_rag_eval.py --nome m1_120b --prompt v3 --model gpt-oss:120b-cloud
+python evals/run_rag_eval.py --nome m2_20b  --prompt v3 --model gpt-oss:20b-cloud
+python evals/run_rag_eval.py --nome m3_outro --prompt v3 --provider gemini --model <modelo>
 ```
 
-O resultado fica em `evals/model_comparison.json`.
+## 2. Parâmetros e justificativa
 
-## Tabela para preencher depois da execucao
+| Parâmetro | Valor | Por quê |
+|---|---:|---|
+| `temperature` | 0 | respostas factuais e reproduzíveis; criatividade piora a fidelidade ao contexto |
+| `top_p` | 0.9 | com temperature 0 tem efeito mínimo; mantido para comparar com a Sprint 03 |
+| `k` (top-k) | 4 | cobre respostas que cruzam documentos (ex.: tarifa + potência) sem inflar o prompt |
+| `max_tokens` | 1024 | o JSON com citações truncava em 512 |
+| `min_score` | <!-- valor calibrado --> | limiar de relevância (1 − distância cosseno), calibrado com `scripts/calibrar_limiar.py` |
 
-| Metrica | gpt-oss:120b-cloud | gpt-oss:20b-cloud |
-|---|---:|---:|
-| Qualidade media (0-5) | 5.0 | 4.5 |
-| Tokens medios/turno | 10.2 | 10.2 |
-| Latencia media (ms) | 1731.08 | 5239.53 |
-| Structured output valido (%) | 100.0 | 100.0 |
-| Casos adequados | 10/10 | 10/10 |
+Se o grupo testar outros valores de `k`, `temperature` ou `top_p`, rode com `--k`, `--temperature`, `--top-p` e registre cada execução (o nome fica na tabela).
 
+## 3. Resultados
+
+<!-- COLE AQUI a tabela "Modelos e parâmetros" de python evals/gerar_tabelas.py -->
+
+## 4. Análise
+
+<!-- Escreva a leitura dos números: qual modelo ganhou em faithfulness, em answer_relevancy e em latência; se o modelo maior compensa o custo/latência; se o outro provedor mudou a taxa de citação ou de recusa. Só afirme o que a tabela mostra. -->
