@@ -16,3 +16,6 @@ __pycache__/
 evals/model_comparison.json
 evals/sprint3_results.json
 docs/relatorio_evolucao.pdf
+
+# Sprint 04: indice vetorial local (regenerado por scripts/ingest.py)
+data/chroma_db/
