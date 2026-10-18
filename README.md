@@ -4,8 +4,8 @@ Projeto FIAP x GoodWe Brasil para um chatbot de recarga de veiculos eletricos.
 
 A Sprint 04 evolui o projeto para um **RAG medido, confiavel e utilizavel**: base de PDFs em
 ChromaDB persistente (`nomic-embed-text`), respostas apenas com o contexto recuperado e
-**citacao de fonte**, avaliacao por iteracao (RAGAS ou rubrica manual) e **interface web**
-(Streamlit). O chatbot LCEL da Sprint 03 continua em `src/chain/` e `src/chatbot.py`.
+**citacao de fonte**, busca hibrida (embeddings + BM25), avaliacao por iteracao (rubrica manual
+documentada) e **interface web** (HTML/CSS/JS sobre FastAPI; Streamlit como alternativa). O chatbot LCEL da Sprint 03 continua em `src/chain/` e `src/chatbot.py`.
 
 ## Integrantes
 
@@ -20,18 +20,18 @@ ChromaDB persistente (`nomic-embed-text`), respostas apenas com o contexto recup
 
 ## Como o modelo funciona
 
-O projeto nao usa modelo local e nao precisa baixar nada pelo Ollama. A geracao e os embeddings
-usam a **Ollama Cloud** (`OLLAMA_API_KEY` em variavel de ambiente):
-
-- geracao: `gpt-oss:120b-cloud` (comparacao: `gpt-oss:20b-cloud`)
-- embeddings: `nomic-embed-text`
-- opcional (bonus multi-provider): `openai`, `gemini` ou `anthropic`, veja `src/rag/llm.py`
+- **Geracao:** Ollama Cloud (`OLLAMA_API_KEY` no `.env`): `gpt-oss:120b-cloud` (comparacao: `gpt-oss:20b-cloud`).
+- **Embeddings:** `nomic-embed-text` rodando no **Ollama local** (`ollama pull nomic-embed-text`, sem chave).
+  Em algumas contas a Ollama Cloud recusa `/api/embed` com 401 mesmo com a chave valida para chat; por isso o
+  `.env.example` aponta os embeddings para `http://localhost:11434`.
+- **Opcional (bonus multi-provider):** `openai`, `gemini` ou `anthropic`, veja `src/rag/llm.py`.
 
 ## Instalar
 
 ```bash
 pip install -r requirements.txt
 cp .env.example .env     # preencha OLLAMA_API_KEY (o .env esta no .gitignore)
+ollama pull nomic-embed-text   # embeddings locais (Ollama instalado e aberto)
 ```
 
 ## Rodar o RAG (Sprint 04)
@@ -80,16 +80,13 @@ Entrada maliciosa bloqueada antes da busca; sem trecho relevante o sistema recus
 modelo; frases de comando dentro dos PDFs sao removidas; o prompt v3 trata o contexto como dado,
 proibe inventar especificacoes e exige citacao `[S#]` validada contra os trechos enviados.
 
-## Embeddings locais (Ollama)
-
-A Ollama Cloud pode recusar `/api/embed` (401) mesmo com a chave valida para chat. Solucao: embeddings no
-Ollama local e geracao na nuvem.
+## Configuracao final medida (iteracao 6)
 
 ```bash
-ollama pull nomic-embed-text
-# .env
 RAG_EMBEDDING_BASE_URL=http://localhost:11434
-RAG_HIBRIDO=1
+RAG_HIBRIDO=1          # embeddings + BM25 (RRF)
 RAG_K=6
 RAG_MIN_SCORE=0.55
 ```
+
+Relatorios: `docs/relatorio_rag.md`, `docs/relatorio_modelos.md` e `docs/relatorio_evolucao_sprint04.pdf`.

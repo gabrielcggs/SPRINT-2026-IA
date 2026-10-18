@@ -10,12 +10,16 @@ Na raiz do projeto:
 ```bash
 pip install -r requirements.txt
 cp .env.example .env                    # preencha OLLAMA_API_KEY
-python scripts/gerar_base_conhecimento.py   # cria os PDFs simulados (ou copie seus PDFs para data/knowledge_base/)
-python scripts/ingest.py                    # indexa no ChromaDB persistente (data/chroma_db/)
-streamlit run app/streamlit_app.py
+ollama pull nomic-embed-text            # embeddings locais
+python scripts/ingest.py                # indexa a base (data/knowledge_base/) no ChromaDB (data/chroma_db/)
+python app/web_server.py                # interface HTML/CSS/JS em http://127.0.0.1:8000
 ```
 
-Abre em http://localhost:8501.
+Alternativa em Streamlit: `streamlit run app/streamlit_app.py` (http://localhost:8501).
+
+Arquivos da interface principal: `web_server.py` (FastAPI: `/api/config`, `/api/chat`) e `web/` (`index.html`, `style.css`, `app.js`).
+Cada resposta traz chips `[S1]` clicaveis que abrem, no painel "Evidencia", o documento, a pagina, a secao, a
+relevancia e o trecho; a aba "Recuperadas" mostra tudo o que a busca trouxe, inclusive quando o assistente recusa.
 
 ## O que a interface faz
 

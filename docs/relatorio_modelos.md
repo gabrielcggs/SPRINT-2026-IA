@@ -61,6 +61,7 @@ O provedor é escolhido por configuração (`RAG_LLM_PROVIDER`, `--provider`): a
 | gemini: gemini-2.5-flash | 0.93 | 0.62 | 0.86 | 93% | 22% | 5645 |
 
 O juiz de `answer_relevancy` e `faithfulness` foi o `gpt-oss:120b-cloud` nas duas linhas.
+Na rodada do Gemini, 1 das 25 chamadas falhou (caso R10, uma pergunta que devia ser respondida), o que pesa contra ele nas médias.
 
 ## 4. Análise
 
@@ -76,5 +77,5 @@ O juiz de `answer_relevancy` e `faithfulness` foi o `gpt-oss:120b-cloud` nas dua
   `answer_relevancy` (0,62 contra 0,69), `contém esperado` (0,86 contra 0,96) e citação (93% contra 100%), e foi cerca de 6 vezes
   mais lento (5645 ms contra 872 ms). Recusou por engano menos casos (22% contra 28%). **Ressalva:** o juiz foi o gpt-oss:120b, que também
   era o modelo avaliado na outra linha; esse viés pode favorecê-lo. O ideal seria um juiz de um terceiro provedor.
-- **Rodada descartada.** Uma execução do Gemini com a busca final (`final_gemini`) retornou métricas incompatíveis com a anterior
-  (`faithfulness` 0,06 e latência de 31 s), o que indica falha nas chamadas à API. Ela não foi usada nas conclusões e deve ser refeita antes de ser citada.
+- **Rodada descartada.** Uma execução do Gemini com a busca final falhou em 20 das 25 chamadas à API (erro de chamada, provavelmente limite de uso) e
+  foi removida do repositório. A comparação entre provedores usa a rodada anterior, em que as duas configurações são idênticas e só uma chamada falhou.

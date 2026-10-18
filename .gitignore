@@ -19,3 +19,4 @@ docs/relatorio_evolucao.pdf
 
 # Sprint 04: indice vetorial local (regenerado por scripts/ingest.py)
 data/chroma_db/
+.DS_Store
