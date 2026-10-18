@@ -6,6 +6,7 @@ A qualidade e medida com evals/run_rag_eval.py.
 """
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -235,11 +236,27 @@ def test_prompt_v3_delimita_contexto_e_v1_nao(indice):
 
 def test_pergunta_de_seguimento_herda_o_tema(indice):
     store, *_ = indice
-    llm = FakeLLM(json.dumps({"resposta": "Ambos têm 7 kW [S1].", "fontes": ["S1"], "sem_contexto": False}))
-    p = _pipeline(store, llm)
-    consulta = p._consulta_busca("E qual deles tem maior potência?", [{"pergunta": "Quais carregadores estão disponíveis?", "resposta": "x"}])
-    assert "disponíveis" in consulta and "maior potência" in consulta
-    assert p._consulta_busca("Qual a tarifa padrão por kWh na instalação inteira hoje?", None).startswith("Qual a tarifa")
+    p = _pipeline(store, FakeLLM("{}"))
+    anterior = [{"pergunta": "Quais carregadores estão disponíveis?", "resposta": "x"}]
+    for seguimento in ["E qual deles tem maior potência?", "Mas isso vale para visitantes?", "E a potência?"]:
+        consulta = p._consulta_busca(seguimento, anterior)
+        assert "disponíveis" in consulta and seguimento in consulta, seguimento
+
+
+def test_pergunta_curta_e_independente_nao_e_contaminada_pelo_turno_anterior(indice):
+    """Regressao do bug real: 'Quanto custa uma hora de recarga no CG-02?' (8 palavras) era
+    grudada na pergunta anterior e a busca trazia o assunto errado."""
+    store, *_ = indice
+    p = _pipeline(store, FakeLLM("{}"))
+    anterior = [{"pergunta": "Qual o tempo máximo de uma sessão e a taxa de ociosidade?", "resposta": "x"}]
+    for independente in [
+        "Quanto custa uma hora de recarga no CG-02?",
+        "Qual é a tarifa padrão por kWh?",
+        "Qual o tempo máximo de uma sessão e a taxa de ociosidade?",  # tem " e a " no meio
+        "Quando o sistema envia o alerta de sobrecarga?",
+    ]:
+        assert p._consulta_busca(independente, anterior) == independente
+    assert p._consulta_busca("Qualquer coisa", None) == "Qualquer coisa"
 
 
 def test_multi_provider_usa_mesma_recuperacao(indice):
@@ -263,3 +280,84 @@ def test_schema_aceita_novos_carregadores_e_fontes():
     assert c.carregador_id == "CG-05" and c.fontes
     with pytest.raises(ValueError):
         ConsultaRecarga(resposta="ok", carregador_id="X999")
+
+
+# ---------- configuracao da chave / embeddings (bug do 401) ----------
+def test_dotenv_do_projeto_vence_chave_antiga_do_shell(tmp_path):
+    """Regressao: OLLAMA_API_KEY exportada no shell nao pode ignorar o .env do projeto."""
+    import os
+    import shutil
+    import subprocess
+    import sys
+
+    projeto = tmp_path / "proj"
+    shutil.copytree(ROOT / "src", projeto / "src", ignore=shutil.ignore_patterns("__pycache__"))
+    (projeto / ".env").write_text("OLLAMA_API_KEY=CHAVE-DO-ENV\n", encoding="utf-8")
+    codigo = ("import sys, os; sys.path.insert(0, sys.argv[1]); "
+              "from rag import config; print(os.environ['OLLAMA_API_KEY'])")
+    saida = subprocess.run(
+        [sys.executable, "-W", "ignore", "-c", codigo, str(projeto / "src")],
+        env={**os.environ, "OLLAMA_API_KEY": "CHAVE-ANTIGA-DO-SHELL"},
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    assert saida == "CHAVE-DO-ENV"
+
+
+def test_embeddings_na_nuvem_exigem_chave(monkeypatch):
+    from rag.embeddings import build_embeddings
+
+    monkeypatch.delenv("OLLAMA_API_KEY", raising=False)
+    monkeypatch.delenv("RAG_EMBEDDING_BASE_URL", raising=False)
+    monkeypatch.setenv("OLLAMA_BASE_URL", "https://ollama.com")
+    with pytest.raises(RuntimeError, match="OLLAMA_API_KEY"):
+        build_embeddings("ollama", "nomic-embed-text")
+
+
+def test_embeddings_em_ollama_local_nao_exigem_chave(monkeypatch):
+    from rag.embeddings import build_embeddings
+
+    monkeypatch.delenv("OLLAMA_API_KEY", raising=False)
+    monkeypatch.setenv("RAG_EMBEDDING_BASE_URL", "http://localhost:11434")
+    assert build_embeddings("ollama", "nomic-embed-text") is not None
+
+
+def test_api_web_config_e_chat(indice):
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    sys.path.insert(0, str(ROOT / "app"))
+    import web_server
+
+    store = indice[0]
+    llm = FakeLLM(json.dumps({"resposta": "R$ 0,89 [S1].", "fontes": ["S1"], "sem_contexto": False}))
+    pipe = _pipeline(store, llm)
+    web_server._estado["pipeline"] = pipe
+    cli = TestClient(web_server.app)
+    assert cli.get("/").status_code == 200
+    assert cli.get("/app.js").status_code == 200
+    assert "providers" in cli.get("/api/config").json()
+    r = cli.post("/api/chat", json={"pergunta": "tarifa padrao kWh"})
+    assert r.status_code == 200 and r.json()["respostas"][0]["pergunta"]
+    assert cli.post("/api/chat", json={"pergunta": "x", "provider": "inexistente"}).status_code == 400
+    web_server._estado["pipeline"] = None
+
+
+def test_busca_hibrida_traz_o_trecho_que_a_densa_perde(indice):
+    store = indice[0]
+    hib = Retriever(store, k=3, min_score=0.0, hibrido=True)
+    b = hib.buscar("Existe sobrecarga na instalação agora?")
+    assert any("Consumo e demanda" in r.secao for r in b.todos[:2])
+    assert all(isinstance(r.score, float) for r in b.todos)
+
+
+def test_busca_hibrida_expande_sinonimos(indice):
+    hib = Retriever(indice[0], k=4, min_score=0.0, hibrido=True)
+    b = hib.buscar("O carregamento do CG-02 já terminou?")
+    assert any("Estado operacional" in r.secao for r in b.todos)
+
+
+def test_lexical_tokeniza_sem_acento_e_mantem_codigos():
+    from rag.lexical import tokenizar
+
+    assert "cg-02" in tokenizar("O CG-02 está disponível?")
+    assert tokenizar("disponíveis") == tokenizar("disponível")

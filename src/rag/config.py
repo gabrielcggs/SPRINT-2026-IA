@@ -14,7 +14,9 @@ from dotenv import load_dotenv
 from rag.chunking import ChunkingConfig
 
 ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(ROOT / ".env", override=False)
+# override=True: o .env do projeto vence qualquer OLLAMA_API_KEY antiga exportada no
+# shell (~/.zshrc, conda...). Mesmo comportamento do chatbot da Sprint 03.
+load_dotenv(ROOT / ".env", override=True)
 
 
 def _bool(valor: str | None, padrao: bool) -> bool:
@@ -59,12 +61,17 @@ def nome_colecao(cfg: ChunkingConfig, provider: str | None = None, modelo: str |
 
 # Busca
 def top_k() -> int:
-    return int(os.getenv("RAG_K", "4"))
+    return int(os.getenv("RAG_K", "6"))
+
+
+def busca_hibrida() -> bool:
+    """RAG_HIBRIDO=1 liga a busca hibrida (densa + BM25 por RRF)."""
+    return _bool(os.getenv("RAG_HIBRIDO"), True)
 
 
 def min_score() -> float:
     # Limiar de relevancia (1 - distancia cosseno). CALIBRAR com scripts/calibrar_limiar.py.
-    return float(os.getenv("RAG_MIN_SCORE", "0.45"))
+    return float(os.getenv("RAG_MIN_SCORE", "0.55"))
 
 
 # Geracao

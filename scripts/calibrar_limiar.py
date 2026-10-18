@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from rag import config  # noqa: E402
 from rag.embeddings import build_embeddings  # noqa: E402
+from rag.pipeline import RagPipeline  # noqa: E402
 from rag.retriever import Retriever  # noqa: E402
 from rag.security import verificar_entrada  # noqa: E402
 from rag.vector_store import get_vector_store, total_chunks  # noqa: E402
@@ -38,8 +39,8 @@ def main() -> None:
     for c in casos:
         if verificar_entrada(c["pergunta"]):
             continue  # ja barrada antes da busca
-        busca = retriever.buscar(c["pergunta"] if not c.get("turnos_previos")
-                                 else f"{c['turnos_previos'][-1]} {c['pergunta']}")
+        historico = [{"pergunta": c["turnos_previos"][-1], "resposta": ""}] if c.get("turnos_previos") else None
+        busca = retriever.buscar(RagPipeline._consulta_busca(c["pergunta"], historico))
         (fora if c["deve_recusar"] else dentro).append((busca.top1_score or 0.0, c["id"], c["pergunta"]))
 
     for titulo, grupo in (("DEVEM responder", dentro), ("DEVEM recusar", fora)):

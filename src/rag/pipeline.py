@@ -25,11 +25,17 @@ RECUSA_SEM_CONTEXTO = (
     "recarga e uso do EV ChargeOps."
 )
 
-_PRONOMES = re.compile(
-    r"\b(ele|ela|eles|elas|dele|dela|deles|delas|isso|esse|essa|esses|essas|desse|dessa|"
-    r"nele|nela|qual deles|e qual|e quanto|e o|e a)\b",
+# Pergunta de SEGUIMENTO = comeca com conjuncao ("E qual...", "Mas...") ou aponta para algo
+# dito antes por pronome ("deles", "isso", "esse"). Pergunta curta mas completa
+# ("Quanto custa uma hora no CG-02?") NAO e seguimento: juntar o turno anterior a ela
+# contamina a busca com o assunto errado.
+_SEGUIMENTO = re.compile(
+    r"^\s*(?:e|mas|entao|então|e se)\b"
+    r"|\b(?:ele|ela|eles|elas|dele|dela|deles|delas|isso|isto|esse|essa|esses|essas|"
+    r"desse|dessa|nesse|nessa|nele|nela|aquele|aquela)\b",
     re.IGNORECASE,
 )
+MAX_PALAVRAS_SEGUIMENTO_CURTO = 3  # "E a potencia?" / "Quanto custa?" sem assunto proprio
 
 
 @dataclass
@@ -103,7 +109,9 @@ class RagPipeline:
     @staticmethod
     def _consulta_busca(pergunta: str, historico: list[dict] | None) -> str:
         """Pergunta de seguimento ("e qual deles e mais potente?") herda o tema do turno anterior."""
-        if historico and (len(pergunta.split()) <= 8 or _PRONOMES.search(pergunta)):
+        if historico and (
+            _SEGUIMENTO.search(pergunta) or len(pergunta.split()) <= MAX_PALAVRAS_SEGUIMENTO_CURTO
+        ):
             return f"{historico[-1]['pergunta']} {pergunta}"
         return pergunta
 
@@ -260,6 +268,7 @@ def abrir_pipeline(
     model: str | None = None,
     chunking=None,
     llm_factory=None,
+    hibrido: bool | None = None,
 ) -> RagPipeline:
     """Monta o pipeline sobre o indice ChromaDB ja persistido (rode scripts/ingest.py antes)."""
     from rag import config
@@ -276,7 +285,8 @@ def abrir_pipeline(
             "e depois python scripts/ingest.py"
         )
     retriever = Retriever(store, k=k or config.top_k(),
-                          min_score=config.min_score() if min_score is None else min_score)
+                          min_score=config.min_score() if min_score is None else min_score,
+                          hibrido=config.busca_hibrida() if hibrido is None else hibrido)
     return RagPipeline(
         retriever,
         provider=provider or config.llm_provider(),

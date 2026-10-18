@@ -82,16 +82,18 @@ def build_embeddings(provider: str | None = None, model: str | None = None) -> E
     if provider == "ollama":
         from langchain_ollama import OllamaEmbeddings
 
+        # RAG_EMBEDDING_BASE_URL permite embeddings num Ollama LOCAL
+        # (http://localhost:11434, apos `ollama pull nomic-embed-text`) enquanto a
+        # geracao continua na Ollama Cloud. Em servidor local nao precisa de chave.
+        base_url = os.getenv("RAG_EMBEDDING_BASE_URL") or os.getenv("OLLAMA_BASE_URL", "https://ollama.com")
+        local = any(h in base_url for h in ("localhost", "127.0.0.1", "0.0.0.0"))
         api_key = os.getenv("OLLAMA_API_KEY", "")
-        if not api_key:
+        if not api_key and not local:
             raise RuntimeError(
                 "OLLAMA_API_KEY nao definida. Copie .env.example para .env e preencha a chave."
             )
-        base = OllamaEmbeddings(
-            model=model,
-            base_url=os.getenv("OLLAMA_BASE_URL", "https://ollama.com"),
-            client_kwargs={"headers": {"Authorization": f"Bearer {api_key}"}},
-        )
+        client_kwargs = {"headers": {"Authorization": f"Bearer {api_key}"}} if (api_key and not local) else {}
+        base = OllamaEmbeddings(model=model, base_url=base_url, client_kwargs=client_kwargs)
         if model.startswith("nomic"):
             return PrefixedEmbeddings(base, "search_query: ", "search_document: ")
         return base

@@ -1,4 +1,4 @@
-# Interface web — ChargeGrid Intelligence (Streamlit)
+# Interface web — ChargeGrid Intelligence
 
 Interface do RAG com **citação visível**: cada resposta mostra, em "Fontes citadas", o
 documento, a página, a seção, a relevância e o trecho recuperado.
@@ -34,3 +34,16 @@ Abre em http://localhost:8501.
 | "A coleção ... está vazia" | Não rodou a ingestão | `python scripts/ingest.py` |
 | "OLLAMA_API_KEY nao definida" | `.env` ausente | Copie `.env.example` e preencha |
 | Tudo é recusado | `RAG_MIN_SCORE` alto demais | `python scripts/calibrar_limiar.py` |
+
+## Interface HTML/CSS/JS (principal)
+
+```bash
+python app/web_server.py     # http://127.0.0.1:8000  (WEB_HOST / WEB_PORT mudam o endereco)
+```
+
+Backend FastAPI (`web_server.py`) + frontend sem build em `web/` (`index.html`, `style.css`, `app.js`).
+Mostra a resposta com chips `[S1]` clicaveis, o painel de evidencia (trechos citados e recuperados, com
+medidor de relevancia), ajustes (modelo, prompt, k, relevancia minima, temperature, top_p, max_tokens) e
+modo comparar duas variantes. Se o indice nao existir, a tela explica como cria-lo.
+
+A versao em Streamlit (`streamlit run app/streamlit_app.py`) continua disponivel.

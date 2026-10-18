@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChargeGrid Intelligence</title>
+  <meta name="description" content="Assistente de recarga de veículos elétricos da GoodWe Brasil. Cada resposta mostra os trechos da base que a sustentam.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231459D9'/%3E%3Cpath d='M18 4 8 18h7l-1 10 10-14h-7z' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topo">
+      <div class="marca-bloco">
+        <h1 class="marca">ChargeGrid Intelligence</h1>
+        <p class="marca-sub">Assistente de recarga da GoodWe Brasil. Responde só com os documentos da base.</p>
+      </div>
+      <div class="acoes">
+        <button type="button" class="botao botao-texto" id="btn-ajustes">Ajustes</button>
+        <button type="button" class="botao botao-texto" id="btn-limpar">Nova conversa</button>
+      </div>
+    </header>
+
+    <main class="coluna-conversa" id="coluna-conversa">
+      <div class="rolagem" id="rolagem">
+        <div class="conversa" id="conversa" aria-live="polite"></div>
+      </div>
+
+      <form class="compositor" id="form" autocomplete="off">
+        <label class="so-leitor" for="pergunta">Sua pergunta</label>
+        <textarea id="pergunta" name="pergunta" rows="1" maxlength="1000"
+                  placeholder="Pergunte sobre carregadores, tarifas ou regras de recarga"></textarea>
+        <button type="submit" class="botao botao-primario" id="btn-enviar">Perguntar</button>
+      </form>
+    </main>
+
+    <aside class="evidencia" id="evidencia" aria-label="Evidência da resposta">
+      <div class="evid-topo">
+        <div class="evid-titulo">
+          <h2>Evidência</h2>
+          <button type="button" class="botao botao-texto evid-fechar" id="evid-fechar">Fechar</button>
+        </div>
+        <p class="evid-pergunta" id="evid-pergunta"></p>
+        <div class="evid-seletor" id="evid-variantes" hidden role="group" aria-label="Variante da resposta"></div>
+        <div class="evid-abas" id="evid-abas" role="tablist" aria-label="Tipo de trecho"></div>
+      </div>
+      <div class="evid-corpo" id="evid-corpo"></div>
+    </aside>
+    <div class="cortina" id="cortina" hidden></div>
+  </div>
+
+  <dialog class="ajustes" id="ajustes" aria-labelledby="ajustes-titulo">
+    <form method="dialog" class="ajustes-form" id="ajustes-form">
+      <div class="ajustes-topo">
+        <h2 id="ajustes-titulo">Ajustes</h2>
+        <button type="submit" class="botao botao-texto" value="fechar">Fechar</button>
+      </div>
+
+      <fieldset class="grupo">
+        <legend>Modelo de resposta</legend>
+        <label class="campo"><span>Provedor</span>
+          <select id="f-provider"></select></label>
+        <label class="campo"><span>Modelo</span>
+          <input id="f-model" type="text" spellcheck="false"></label>
+      </fieldset>
+
+      <fieldset class="grupo">
+        <legend>Prompt</legend>
+        <label class="campo"><span>Versão</span>
+          <select id="f-prompt"></select></label>
+        <p class="ajuda" id="f-prompt-desc"></p>
+      </fieldset>
+
+      <fieldset class="grupo">
+        <legend>Busca na base</legend>
+        <label class="campo"><span>Trechos recuperados (k)</span>
+          <input id="f-k" type="number" min="1" max="10" step="1"></label>
+        <label class="campo"><span>Relevância mínima <output id="o-min" for="f-min"></output></span>
+          <input id="f-min" type="range" min="0" max="1" step="0.01"></label>
+        <p class="ajuda">Trechos abaixo desse valor não chegam ao modelo. Se nenhum passar, o assistente recusa sem consultar o modelo.</p>
+      </fieldset>
+
+      <fieldset class="grupo">
+        <legend>Geração</legend>
+        <label class="campo"><span>temperature <output id="o-temp" for="f-temp"></output></span>
+          <input id="f-temp" type="range" min="0" max="1" step="0.05"></label>
+        <label class="campo"><span>top_p <output id="o-top" for="f-top"></output></span>
+          <input id="f-top" type="range" min="0.1" max="1" step="0.05"></label>
+        <label class="campo"><span>max_tokens</span>
+          <input id="f-max" type="number" min="64" max="4096" step="64"></label>
+      </fieldset>
+
+      <fieldset class="grupo">
+        <legend>Comparar duas respostas</legend>
+        <label class="campo campo-check"><input id="f-comparar" type="checkbox">
+          <span>Consultar duas variantes com os mesmos trechos</span></label>
+        <div id="grupo-b" hidden>
+          <p class="ajuda">A variante A usa os ajustes acima. Defina a B:</p>
+          <label class="campo"><span>Provedor B</span><select id="f-provider-b"></select></label>
+          <label class="campo"><span>Modelo B</span><input id="f-model-b" type="text" spellcheck="false"></label>
+          <label class="campo"><span>Prompt B</span><select id="f-prompt-b"></select></label>
+        </div>
+      </fieldset>
+
+      <div class="ajustes-rodape">
+        <button type="button" class="botao botao-texto" id="btn-padroes">Restaurar padrões</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

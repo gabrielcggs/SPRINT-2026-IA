@@ -8,6 +8,7 @@ Exemplos:
     python evals/run_rag_eval.py --nome it2_prompt_v2 --prompt v2
     python evals/run_rag_eval.py --nome it3_prompt_v3 --prompt v3
     python evals/run_rag_eval.py --nome it4_v3_chunk400 --prompt v3 --chunk-size 400 --overlap 60   # reindexe antes
+    python evals/run_rag_eval.py --nome it5_v3_hibrido --prompt v3 --hibrido --min-score 0.55
     python evals/run_rag_eval.py --nome v3_gemini --prompt v3 --provider gemini --model <modelo>
 
 Metricas
@@ -150,6 +151,14 @@ def executar_caso(pipe: RagPipeline, caso: dict, **kw) -> dict:
     return pipe.responder(caso["pergunta"], historico, **kw).to_dict()
 
 
+def _hit_trecho(recuperados: list[dict], palavras: list[str]) -> float:
+    """1 se algum trecho enviado ao modelo contem TODAS as palavras-chave do gabarito (qualidade da busca)."""
+    from rag.lexical import normalizar
+
+    chaves = [normalizar(p) for p in palavras]
+    return 1.0 if any(all(c in normalizar(x["trecho"]) for c in chaves) for x in recuperados) else 0.0
+
+
 def _media(vals):
     vals = [v for v in vals if v is not None and v == v]
     return round(mean(vals), 4) if vals else None
@@ -167,6 +176,7 @@ def resumir(linhas: list[dict]) -> dict:
         ),
         "contem_esperado": _media([l["scores"].get("contem_esperado") for l in responder]),
         "hit_fonte": _media([l["scores"].get("hit_fonte") for l in responder if l["scores"].get("hit_fonte") is not None]),
+        "hit_trecho": _media([l["scores"].get("hit_trecho") for l in responder if l["scores"].get("hit_trecho") is not None]),
         "citacao": _media([1.0 if l["citou"] else 0.0 for l in dadas]),
         "recusa_correta": _media([1.0 if l["recusado"] else 0.0 for l in recusar]),
         "recusa_indevida": _media([1.0 if l["recusado"] else 0.0 for l in responder]),
@@ -185,6 +195,8 @@ def main() -> None:
     ap.add_argument("--temperature", type=float, default=config.llm_temperature())
     ap.add_argument("--top-p", type=float, default=config.llm_top_p())
     ap.add_argument("--max-tokens", type=int, default=config.llm_max_tokens())
+    ap.add_argument("--hibrido", action="store_true", help="busca hibrida: densa + BM25 (RRF)")
+    ap.add_argument("--densa", action="store_true", help="busca so por embeddings (como nas iteracoes 1 a 4)")
     ap.add_argument("--chunk-size", type=int)
     ap.add_argument("--overlap", type=int)
     ap.add_argument("--modo", choices=["secao", "pagina"])
@@ -208,6 +220,7 @@ def main() -> None:
     pipe = abrir_pipeline(
         k=args.k, min_score=args.min_score, prompt_version=args.prompt,
         provider=args.provider, model=args.model, chunking=cfg,
+        hibrido=True if args.hibrido else (False if args.densa else None),
     )
     pipe.temperature, pipe.top_p, pipe.max_tokens = args.temperature, args.top_p, args.max_tokens
 
@@ -225,6 +238,7 @@ def main() -> None:
         scores = {
             "contem_esperado": None if r["recusado"] else contem_esperado(r["resposta"], caso["palavras_chave"]),
             "hit_fonte": (1.0 if recuperados & set(esperadas) else 0.0) if esperadas else None,
+            "hit_trecho": _hit_trecho(r["recuperados"], caso["palavras_chave"]) if caso["palavras_chave"] else None,
         }
         linhas.append({
             "id": caso["id"], "categoria": caso["categoria"], "pergunta": caso["pergunta"],

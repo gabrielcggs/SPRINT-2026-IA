@@ -39,8 +39,10 @@ cp .env.example .env     # preencha OLLAMA_API_KEY (o .env esta no .gitignore)
 ```bash
 python scripts/gerar_base_conhecimento.py   # PDFs simulados em data/knowledge_base/
 python scripts/ingest.py                    # indexa no ChromaDB (data/chroma_db/)
-python scripts/calibrar_limiar.py           # sugere RAG_MIN_SCORE para o .env
-streamlit run app/streamlit_app.py          # interface web (http://localhost:8501)
+python scripts/calibrar_limiar.py           # mostra os scores por pergunta (dentro/fora do contexto)
+RAG_HIBRIDO=1 python scripts/diagnostico_recuperacao.py   # posicao do trecho que responde, por caso
+python app/web_server.py                     # interface HTML/CSS/JS (http://127.0.0.1:8000)
+streamlit run app/streamlit_app.py          # alternativa em Streamlit (http://localhost:8501)
 python src/main_rag.py                      # ou chat no terminal
 ```
 
@@ -66,7 +68,7 @@ pytest -q          # tests/test_rag_offline.py roda sem rede e sem chave
 
 - `data/knowledge_base/`: PDFs da base de conhecimento (simulados).
 - `src/rag/`: `loader`, `chunking`, `embeddings`, `vector_store`, `retriever`, `prompt_rag` (versionado), `security`, `pipeline`, `llm`, `ingest`, `config`.
-- `app/`: interface Streamlit + README de execucao.
+- `app/`: interface web (`web_server.py` + `web/` em HTML/CSS/JS puro), alternativa Streamlit e README de execucao.
 - `evals/`: `rag_eval_set.json`, `run_rag_eval.py`, `gerar_tabelas.py` e `results/` por iteracao. (`run_evals.py` e `compare_models.py` sao da Sprint 03.)
 - `scripts/`: geracao da base, ingestao e calibracao do limiar.
 - `docs/`: `relatorio_rag.md`, `relatorio_modelos.md`, `relatorio_evolucao_sprint04.md` (+ PDF da entrega).
@@ -77,3 +79,17 @@ pytest -q          # tests/test_rag_offline.py roda sem rede e sem chave
 Entrada maliciosa bloqueada antes da busca; sem trecho relevante o sistema recusa sem chamar o
 modelo; frases de comando dentro dos PDFs sao removidas; o prompt v3 trata o contexto como dado,
 proibe inventar especificacoes e exige citacao `[S#]` validada contra os trechos enviados.
+
+## Embeddings locais (Ollama)
+
+A Ollama Cloud pode recusar `/api/embed` (401) mesmo com a chave valida para chat. Solucao: embeddings no
+Ollama local e geracao na nuvem.
+
+```bash
+ollama pull nomic-embed-text
+# .env
+RAG_EMBEDDING_BASE_URL=http://localhost:11434
+RAG_HIBRIDO=1
+RAG_K=6
+RAG_MIN_SCORE=0.55
+```
